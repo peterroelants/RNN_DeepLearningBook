@@ -8,7 +8,7 @@ filepath = '/Users/peterroelants/Programming/DeepLearningBook/charrnn/tiny-shake
 # with open(filepath, 'r') as f:
 #     data = f.read()
 
-data = '0123456789'
+data = 'abc'
 
 # print('data: ', data)
 
