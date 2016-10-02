@@ -5,10 +5,10 @@ import numpy as np
 
 filepath = '/Users/peterroelants/Programming/DeepLearningBook/charrnn/tiny-shakespeare.txt'
 # Read file
-# with open(filepath, 'r') as f:
-#     data = f.read()
+with open(filepath, 'r') as f:
+    data = f.read()
 
-data = 'abc'
+# data = 'abc'
 
 # print('data: ', data)
 
@@ -74,11 +74,11 @@ def get_batch_generator(data, batch_size, batch_len):
 
 batch_generator = get_batch_generator(data, batch_size, batch_len)
 
-for i in range(3):
-    print('i: ', i)
-    input_batch, target_batch = next(batch_generator)
-    print('input_batch: ', input_batch.shape, input_batch)
-    print('target_batch: ', target_batch.shape, target_batch)
+# for i in range(3):
+#     print('i: ', i)
+#     input_batch, target_batch = next(batch_generator)
+#     print('input_batch: ', input_batch.shape, input_batch)
+#     print('target_batch: ', target_batch.shape, target_batch)
 
 
 
