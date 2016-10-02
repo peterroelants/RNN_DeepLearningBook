@@ -5,11 +5,11 @@ import numpy as np
 import tensorflow as tf
 
 
-num_steps = 2
+num_steps = 3
 batch_size = 1
 vocab_size = 10
 embedding_size = 3
-sequence_length = 2
+sequence_length = 3
 num_lstm_layers = 2
 x_ids = tf.placeholder(tf.int32, [None, sequence_length])
 W = tf.Variable(
@@ -51,6 +51,7 @@ print('initial_state: ', initial_state)
 output, state = tf.nn.dynamic_rnn(cell=multi_cell, inputs=emb, initial_state=initial_state)
 # (c_state, m_state) = state
 
+# Force the initial state to be set to the new state for the next batch before returning the output
 state_flatten = tf.python.util.nest.flatten(state)
 initial_state_flatten = tf.python.util.nest.flatten(initial_state)
 with tf.control_dependencies([init_state.assign(new_state)
@@ -60,7 +61,7 @@ with tf.control_dependencies([init_state.assign(new_state)
 
 def reset_init_state(sess):
     global initial_state
-    [sess.run(w.initializer) for w in tf.python.util.nest.flatten(initial_state)]
+    [sess.run(s.initializer) for s in tf.python.util.nest.flatten(initial_state)]
     # [state.assign() for state in tf.python.util.nest.flatten(initial_state)]
 
 # outputs = []
@@ -75,7 +76,7 @@ def reset_init_state(sess):
 # Concatenate list of outputs into tensor
 #output = tf.reshape(tf.concat(1, outputs), [batch_size, -1, lstm_size])
 
-_x = np.asarray([[3, 3]])
+_x = np.asarray([[3, 3, 1]])
 print('_x: ', _x.shape, _x)
 
 init_op = tf.initialize_all_variables()
@@ -89,3 +90,9 @@ with tf.Session() as sess:
     reset_init_state(sess)
     ist = sess.run(initial_state)
     print('ist: ', ist)
+    [out, st] = sess.run([output, state] , feed_dict={x_ids: _x})
+    print('out: ', out.shape, out)
+    print('st: ', st)
+    [out, st] = sess.run([output, state] , feed_dict={x_ids: _x})
+    print('out: ', out.shape, out)
+    print('st: ', st)
