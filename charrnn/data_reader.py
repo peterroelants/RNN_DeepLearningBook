@@ -2,10 +2,13 @@ from __future__ import print_function
 from __future__ import division
 
 import numpy as np
+import codecs
 
-filepath = '/Users/peterroelants/Programming/DeepLearningBook/charrnn/tiny-shakespeare.txt'
+# filepath = '/Users/peterroelants/Programming/DeepLearningBook/charrnn/tiny-shakespeare.txt'
+# filepath = './shakespeare_input.txt'
+filepath = './wap.txt'
 # Read file
-with open(filepath, 'r') as f:
+with codecs.open(filepath, encoding='utf-8', mode='r') as f:
     data = f.read()
 
 # data = 'abc'
@@ -22,6 +25,7 @@ for ch in data:
 char_list = list(char_set)
 char_list.sort()
 print('char_list: ', char_list)
+print('char_list: ', len(char_list))
 
 char_dict = {val: idx for idx, val in enumerate(char_list)}
 print('char_dict: ', char_dict)
