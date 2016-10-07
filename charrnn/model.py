@@ -8,10 +8,9 @@ import data_reader
 
 
 class Model():
-    def __init__(self, batch_size, embedding_size, lstm_sizes, dropout,
+    def __init__(self, batch_size, lstm_sizes, dropout,
                  labels, save_path):
         self.batch_size = batch_size
-        self.embedding_size = embedding_size
         self.lstm_sizes = lstm_sizes
         self.labels = labels
         self.label_map = {val: idx for idx, val in enumerate(labels)}
@@ -29,15 +28,16 @@ class Model():
         # self.sample_output = self.init_sample_architecture()
 
     def init_architecture(self):
-        sqrt3 = np.sqrt(3)  # Uniform(-sqrt(3), sqrt(3)) has variance=1
-        self.embedding_weights = tf.Variable(
-            tf.random_uniform(
-                (self.vocab_size, self.embedding_size),
-                minval=-sqrt3, maxval=sqrt3),
-            name='embedding_matrix')
-        self.embedding = tf.nn.embedding_lookup(
-            self.embedding_weights, self.inputs, name='input_embedding')
+        # sqrt3 = np.sqrt(3)  # Uniform(-sqrt(3), sqrt(3)) has variance=1
+        # self.embedding_weights = tf.Variable(
+        #     tf.random_uniform(
+        #         (self.vocab_size, self.embedding_size),
+        #         minval=-sqrt3, maxval=sqrt3),
+        #     name='embedding_matrix')
+        # self.embedding = tf.nn.embedding_lookup(
+        #     self.embedding_weights, self.inputs, name='input_embedding')
         # Define a multilayer LSTM cell
+        self.one_hot = tf.one_hot(self.inputs, depth=len(self.labels))
         # https://www.tensorflow.org/versions/r0.10/tutorials/recurrent/index.html
         # https://www.tensorflow.org/versions/r0.10/api_docs/python/rnn_cell.html
         cell_list = [
@@ -66,7 +66,7 @@ class Model():
         print('self.state: ', self.state)
         # Define the rnn through time
         lstm_output, new_state = tf.nn.dynamic_rnn(
-            cell=self.multi_cell_lstm, inputs=self.embedding,
+            cell=self.multi_cell_lstm, inputs=self.one_hot,
             initial_state=self.state)
         # Force the initial state to be set to the new state for the next batch
         # before returning the output
@@ -162,65 +162,65 @@ def main():
 
     batch_size = 64
     lstm_sizes = [256, 512]
-    batch_len = 50
-    embedding_size = 128
+    batch_len = 100
     learning_rate = 2e-4
 
     batch_generator = data_reader.get_batch_generator(
         data_reader.data, batch_size, batch_len)
 
     save_path = './model.tf'
-    # model = Model(
-    #     batch_size, embedding_size, lstm_sizes, 0.5, labels,
-    #     save_path)
-    # model.init_graph()
-    # # optimizer = tf.train.MomentumOptimizer(
-    # #     learning_rate=learning_rate, momentum=0.9, use_locking=False,
-    # #     name='Momentum', use_nesterov=True)
-    # optimizer = tf.train.AdamOptimizer(learning_rate)
-    # model.init_train_op(optimizer)
-    #
-    # init_op = tf.initialize_all_variables()
-    # with tf.Session() as sess:
-    #     sess.run(init_op)
-    #     model.restore(sess)
-    #     model.reset_state(sess)
-    #     # input_batch, target_batch = next(batch_generator)
-    #     # print('input_batch: ', input_batch.shape, input_batch)
-    #     # print('target_batch: ', target_batch.shape, target_batch)
-    #     start_time = time.time()
-    #     for i in range(500000):
-    #         # model.reset_state(sess)
-    #         input_batch, target_batch = next(batch_generator)
-    #         # print('input_batch: ', input_batch.shape, input_batch)
-    #         # print('target_batch: ', target_batch.shape, target_batch)
-    #         loss, _ = sess.run(
-    #             [model.loss, model.train_op],
-    #             feed_dict={
-    #                 model.inputs: input_batch, model.targets: target_batch})
-    #         if i % 50 == 0 and i != 0:
-    #             print('i: ', i)
-    #             duration = time.time() - start_time
-    #             print('loss: {} ({} sec.)'.format(loss, duration))
-    #             start_time = time.time()
-    #         if i % 1000 == 0 and i != 0:
-    #             print('Saving')
-    #             model.save(sess)
-    #             print('Reset initial state')
-    #             model.reset_state(sess)
-    #     model.save(sess)
+    model = Model(
+        batch_size, lstm_sizes, 0.5, labels,
+        save_path)
+    model.init_graph()
+    # optimizer = tf.train.MomentumOptimizer(
+    #     learning_rate=learning_rate, momentum=0.9, use_locking=False,
+    #     name='Momentum', use_nesterov=True)
+    optimizer = tf.train.AdamOptimizer(learning_rate)
+    model.init_train_op(optimizer)
+
+    init_op = tf.initialize_all_variables()
+    with tf.Session() as sess:
+        sess.run(init_op)
+        model.restore(sess)
+        model.reset_state(sess)
+        # input_batch, target_batch = next(batch_generator)
+        # print('input_batch: ', input_batch.shape, input_batch)
+        # print('target_batch: ', target_batch.shape, target_batch)
+        start_time = time.time()
+        for i in range(500000):
+            # model.reset_state(sess)
+            input_batch, target_batch = next(batch_generator)
+            # print('input_batch: ', input_batch.shape, input_batch)
+            # print('target_batch: ', target_batch.shape, target_batch)
+            loss, _ = sess.run(
+                [model.loss, model.train_op],
+                feed_dict={
+                    model.inputs: input_batch, model.targets: target_batch})
+            if i % 50 == 0 and i != 0:
+                print('i: ', i)
+                duration = time.time() - start_time
+                print('loss: {} ({} sec.)'.format(loss, duration))
+                start_time = time.time()
+            if i % 1000 == 0 and i != 0:
+                print('Saving')
+                model.save(sess)
+            if i % 200 == 0 and i != 0:
+                print('Reset initial state')
+                model.reset_state(sess)
+        model.save(sess)
 
     tf.reset_default_graph()
     model = Model(
-        1, embedding_size, lstm_sizes, 1.0, labels, save_path)
+        1, lstm_sizes, 1.0, labels, save_path)
     model.init_graph()
     init_op = tf.initialize_all_variables()
     with tf.Session() as sess:
         sess.run(init_op)
         model.restore(sess)
         sample = model.sample(
-            sess, prime='\n\nThe origin of war is', sample_length=500,
-            temperature=1.0)
+            sess, prime='\n\nThis feeling was ', sample_length=500,
+            temperature=0.9)
         print('sample: ', sample)
 
 if __name__ == "__main__":
