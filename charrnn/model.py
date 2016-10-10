@@ -81,11 +81,11 @@ class Model(object):
         self.logits_flat = tf.matmul(
             output_flat, self.logit_weights) + self.logit_bias
         logits_temp = self.logits_flat / self.sample_temperature
-        probs_flat = tf.exp(logits_temp) / tf.reduce_sum(tf.exp(logits_temp))
-        # probs_flat = tf.nn.softmax(self.logits_flat)
-        self.probs = tf.reshape(
-            probs_flat, (self.batch_size, -1, self.number_of_characters))
-        # return self.probs
+        probabilities_flat = tf.exp(logits_temp) / tf.reduce_sum(tf.exp(logits_temp))
+        # probabilities_flat = tf.nn.softmax(self.logits_flat)
+        self.probabilities = tf.reshape(
+            probabilities_flat, (self.batch_size, -1, self.number_of_characters))
+        # return self.probabilities
 
     def init_train_op(self, optimizer):
         targets_flat = tf.reshape(self.targets, (-1, ))
@@ -111,7 +111,7 @@ class Model(object):
         for char in prime:
             char_idx = self.label_map[char]
             out = session.run(
-                self.probs,
+                self.probabilities,
                 feed_dict={self.inputs: np.asarray([[char_idx]]),
                            self.sample_temperature: temperature})
             # print('out: ', out, 'out[0,0]: ', out[0,0])
@@ -128,7 +128,7 @@ class Model(object):
             # print('sample_label: ', sample_label)
             output_sample += self.labels[sample_label[0]]
             out = session.run(
-                self.probs,
+                self.probabilities,
                 feed_dict={self.inputs: np.asarray([sample_label]),
                            self.sample_temperature: temperature})
             # print('s: ', s)
