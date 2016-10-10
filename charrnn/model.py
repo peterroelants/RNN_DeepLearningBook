@@ -7,14 +7,14 @@ import tensorflow as tf
 import data_reader
 
 
-class Model():
+class Model(object):
     def __init__(self, batch_size, lstm_sizes, dropout,
                  labels, save_path):
         self.batch_size = batch_size
         self.lstm_sizes = lstm_sizes
         self.labels = labels
         self.label_map = {val: idx for idx, val in enumerate(labels)}
-        self.vocab_size = len(labels)
+        self.number_of_characters = len(labels)
         self.save_path = save_path
         self.dropout = dropout
 
@@ -28,27 +28,16 @@ class Model():
         # self.sample_output = self.init_sample_architecture()
 
     def init_architecture(self):
-        # sqrt3 = np.sqrt(3)  # Uniform(-sqrt(3), sqrt(3)) has variance=1
-        # self.embedding_weights = tf.Variable(
-        #     tf.random_uniform(
-        #         (self.vocab_size, self.embedding_size),
-        #         minval=-sqrt3, maxval=sqrt3),
-        #     name='embedding_matrix')
-        # self.embedding = tf.nn.embedding_lookup(
-        #     self.embedding_weights, self.inputs, name='input_embedding')
         # Define a multilayer LSTM cell
-        self.one_hot = tf.one_hot(self.inputs, depth=len(self.labels))
+        self.one_hot_inputs = tf.one_hot(
+            self.inputs, depth=self.number_of_characters)
         # https://www.tensorflow.org/versions/r0.10/tutorials/recurrent/index.html
         # https://www.tensorflow.org/versions/r0.10/api_docs/python/rnn_cell.html
-        cell_list = [
-            tf.nn.rnn_cell.DropoutWrapper(
-                tf.nn.rnn_cell.LSTMCell(
-                    lstm_size, state_is_tuple=True, use_peepholes=True),
-                output_keep_prob=self.dropout)
-            for lstm_size in self.lstm_sizes]
-        first_cell = cell_list[0]
-        print('first_cell: ', first_cell)
-        print(dir(first_cell))
+        cell_list = [tf.nn.rnn_cell.LSTMCell(lstm_size, state_is_tuple=True)
+                     for lstm_size in self.lstm_sizes]
+        # cell_list = [
+        #     tf.nn.rnn_cell.DropoutWrapper(cell, output_keep_prob=self.dropout)
+        #     for cell in cell_list]
         # Multilayer LSTM
         self.multi_cell_lstm = tf.nn.rnn_cell.MultiRNNCell(
             cell_list, state_is_tuple=True)
@@ -59,33 +48,35 @@ class Model():
             self.batch_size, tf.float32)
         print('initial_state: ', self.initial_state)
         # Convert to variables so that the state can be stored between batches
-        self.state = tf.python.util.nest.pack_sequence_as(
+        # Note that LSTM states is a tuple of tensors, this structure has to be
+        # re-created in order to use as LSTM state.
+        self.state_variables = tf.python.util.nest.pack_sequence_as(
             self.initial_state,
             [tf.Variable(var, trainable=False)
              for var in tf.python.util.nest.flatten(self.initial_state)])
-        print('self.state: ', self.state)
+        print('self.state_variables: ', self.state_variables)
         # Define the rnn through time
-        lstm_output, new_state = tf.nn.dynamic_rnn(
-            cell=self.multi_cell_lstm, inputs=self.one_hot,
-            initial_state=self.state)
+        lstm_output, final_state = tf.nn.dynamic_rnn(
+            cell=self.multi_cell_lstm, inputs=self.one_hot_inputs,
+            initial_state=self.state_variables)
         # Force the initial state to be set to the new state for the next batch
         # before returning the output
         store_states = [
-            lstm_state.assign(new_lstm_state)
-            for (lstm_state, new_lstm_state) in zip(
-                tf.python.util.nest.flatten(self.state),
-                tf.python.util.nest.flatten(new_state))]
+            state_variable.assign(new_state)
+            for (state_variable, new_state) in zip(
+                tf.python.util.nest.flatten(self.state_variables),
+                tf.python.util.nest.flatten(final_state))]
         with tf.control_dependencies(store_states):
             lstm_output = tf.identity(lstm_output)
+        # Reshape so that we can apply the linear transformation to all outputs
+        output_flat = tf.reshape(lstm_output, (-1, self.lstm_sizes[-1]))
         # Define output layer
         self.logit_weights = tf.Variable(
             tf.truncated_normal(
-                (self.lstm_sizes[-1], self.vocab_size), stddev=0.01),
+                (self.lstm_sizes[-1], self.number_of_characters), stddev=0.01),
             name='logit_weights')
         self.logit_bias = tf.Variable(
-            tf.zeros((self.vocab_size)), name='logit_bias')
-        # Reshape so that we can apply the linear transformation to all outputs
-        output_flat = tf.reshape(lstm_output, (-1, self.lstm_sizes[-1]))
+            tf.zeros((self.number_of_characters)), name='logit_bias')
         # Apply last layer transformation
         self.logits_flat = tf.matmul(
             output_flat, self.logit_weights) + self.logit_bias
@@ -93,7 +84,7 @@ class Model():
         probs_flat = tf.exp(logits_temp) / tf.reduce_sum(tf.exp(logits_temp))
         # probs_flat = tf.nn.softmax(self.logits_flat)
         self.probs = tf.reshape(
-            probs_flat, (self.batch_size, -1, self.vocab_size))
+            probs_flat, (self.batch_size, -1, self.number_of_characters))
         # return self.probs
 
     def init_train_op(self, optimizer):
@@ -145,7 +136,7 @@ class Model():
         return output_sample
 
     def reset_state(self, sess):
-        for s in tf.python.util.nest.flatten(self.state):
+        for s in tf.python.util.nest.flatten(self.state_variable):
             sess.run(s.initializer)
 
     def save(self, sess):
