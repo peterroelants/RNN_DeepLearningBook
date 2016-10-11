@@ -25,17 +25,8 @@ class Model():
         self.sample_temperature = tf.placeholder_with_default(1.0, [])
         self.init_architecture()
         self.saver = tf.train.Saver(tf.trainable_variables())
-        # self.sample_output = self.init_sample_architecture()
 
     def init_architecture(self):
-        # sqrt3 = np.sqrt(3)  # Uniform(-sqrt(3), sqrt(3)) has variance=1
-        # self.embedding_weights = tf.Variable(
-        #     tf.random_uniform(
-        #         (self.vocab_size, self.embedding_size),
-        #         minval=-sqrt3, maxval=sqrt3),
-        #     name='embedding_matrix')
-        # self.embedding = tf.nn.embedding_lookup(
-        #     self.embedding_weights, self.inputs, name='input_embedding')
         # Define a multilayer LSTM cell
         self.one_hot = tf.one_hot(self.inputs, depth=len(self.labels))
         # https://www.tensorflow.org/versions/r0.10/tutorials/recurrent/index.html
@@ -161,16 +152,16 @@ def main():
     print('labels: ', labels)
 
     batch_size = 64
-    lstm_sizes = [256, 512]
+    lstm_sizes = [512, 512]
     batch_len = 100
-    learning_rate = 2e-4
+    learning_rate = 2e-3
 
     batch_generator = data_reader.get_batch_generator(
         data_reader.data, batch_size, batch_len)
 
     save_path = './model.tf'
     model = Model(
-        batch_size, lstm_sizes, 0.5, labels,
+        batch_size, lstm_sizes, 0.8, labels,
         save_path)
     model.init_graph()
     # optimizer = tf.train.MomentumOptimizer(
@@ -205,9 +196,13 @@ def main():
             if i % 1000 == 0 and i != 0:
                 print('Saving')
                 model.save(sess)
-            if i % 200 == 0 and i != 0:
+            if i % 100 == 0 and i != 0:
                 print('Reset initial state')
                 model.reset_state(sess)
+            if i % 1000 == 0 and i != 0:
+                print('Reset minibatch feeder')
+                batch_generator = data_reader.get_batch_generator(
+                    data_reader.data, batch_size, batch_len)
         model.save(sess)
 
     tf.reset_default_graph()
@@ -220,7 +215,7 @@ def main():
         model.restore(sess)
         sample = model.sample(
             sess, prime='\n\nThis feeling was ', sample_length=500,
-            temperature=0.9)
+            temperature=1.0)
         print('sample: ', sample)
 
 if __name__ == "__main__":
