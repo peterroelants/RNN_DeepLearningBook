@@ -3,7 +3,6 @@ from __future__ import division
 
 import numpy as np
 import codecs
-import six
 from six.moves import range
 
 # filepath = '/Users/peterroelants/Programming/DeepLearningBook/charrnn/tiny-shakespeare.txt'
@@ -43,7 +42,7 @@ class DataReader(object):
 
     def get_sample(self, start_idx, length):
         # Get a sample and wrap around the data string
-        return [char_dict[data[i % self.data_length]]
+        return [self.char_dict[self.data_str[i % self.data_length]]
                 for i in range(start_idx, start_idx+length)]
 
     def get_input_target_sample(self, start_idx):
@@ -65,7 +64,7 @@ class DataReader(object):
 
     def __iter__(self):
         while True:
-            input_batch, target_batch = get_batch(self.start_idxs)
+            input_batch, target_batch = self.get_batch(self.start_idxs)
             self.start_idxs = (
                 self.start_idxs + self.batch_length) % self.data_length
             yield input_batch, target_batch

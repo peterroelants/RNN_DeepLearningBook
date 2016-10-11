@@ -80,10 +80,12 @@ class Model(object):
         self.logits_flat = tf.matmul(
             output_flat, self.logit_weights) + self.logit_bias
         logits_temp = self.logits_flat / self.sample_temperature
-        probabilities_flat = tf.exp(logits_temp) / tf.reduce_sum(tf.exp(logits_temp))
+        probabilities_flat = tf.exp(logits_temp) / tf.reduce_sum(
+            tf.exp(logits_temp))
         # probabilities_flat = tf.nn.softmax(self.logits_flat)
         self.probabilities = tf.reshape(
-            probabilities_flat, (self.batch_size, -1, self.number_of_characters))
+            probabilities_flat,
+            (self.batch_size, -1, self.number_of_characters))
         # return self.probabilities
 
     def init_train_op(self, optimizer):
@@ -104,7 +106,7 @@ class Model(object):
 
     def sample(self, session, prime, sample_length, temperature=1.0):
         self.reset_state(session)
-        label_idx_list = range(self.vocab_size)
+        label_idx_list = range(self.number_of_characters)
         # Prime state
         print('prime: ', prime)
         for char in prime:
@@ -135,7 +137,7 @@ class Model(object):
         return output_sample
 
     def reset_state(self, sess):
-        for s in tf.python.util.nest.flatten(self.state_variable):
+        for s in tf.python.util.nest.flatten(self.state_variables):
             sess.run(s.initializer)
 
     def save(self, sess):
@@ -146,17 +148,17 @@ class Model(object):
 
 
 def main():
-    labels = data_reader.char_list
-
-    print('labels: ', labels)
-
     batch_size = 64
     lstm_sizes = [512, 512]
     batch_len = 100
     learning_rate = 2e-3
 
-    batch_generator = data_reader.get_batch_generator(
-        data_reader.data, batch_size, batch_len)
+    filepath = './wap.txt'
+
+    data_feed = data_reader.DataReader(
+         filepath, batch_len, batch_size)
+    labels = data_feed.char_list
+    print('labels: ', labels)
 
     save_path = './model.tf'
     model = Model(
@@ -172,7 +174,7 @@ def main():
     init_op = tf.initialize_all_variables()
     with tf.Session() as sess:
         sess.run(init_op)
-        model.restore(sess)
+        # model.restore(sess)
         model.reset_state(sess)
         # input_batch, target_batch = next(batch_generator)
         # print('input_batch: ', input_batch.shape, input_batch)
@@ -180,7 +182,7 @@ def main():
         start_time = time.time()
         for i in range(500000):
             # model.reset_state(sess)
-            input_batch, target_batch = next(batch_generator)
+            input_batch, target_batch = next(iter(data_feed))
             # print('input_batch: ', input_batch.shape, input_batch)
             # print('target_batch: ', target_batch.shape, target_batch)
             loss, _ = sess.run(
@@ -200,8 +202,7 @@ def main():
                 model.reset_state(sess)
             if i % 1000 == 0 and i != 0:
                 print('Reset minibatch feeder')
-                batch_generator = data_reader.get_batch_generator(
-                    data_reader.data, batch_size, batch_len)
+                data_feed.reset_indices()
         model.save(sess)
 
     tf.reset_default_graph()
