@@ -1,11 +1,19 @@
+# -*- coding: utf-8 -*-
 # stdbuf -oL python model.py | tee train.log
 from __future__ import print_function
 from __future__ import division
 
 import time
+import codecs
+import locale
+import sys
 import numpy as np
 import tensorflow as tf
 import data_reader
+
+sys.stdout = codecs.getwriter(locale.getpreferredencoding())(sys.stdout)
+uni = u'têêêêÊÊÊÊOœœœœœ'
+print(uni)
 
 
 class Model(object):
@@ -122,21 +130,24 @@ class Model(object):
                 self.probabilities,
                 feed_dict={self.inputs: np.asarray([[character_idx]])})
             # print('out: ', out, 'out[0,0]: ', out[0,0])
-            # sample_label = np.random.choice(
-            #     self.labels, size=(1),  p=out[0, 0])
-            # print('out: ', out, 'sample_label: ', sample_label)
+            sample_label = np.random.choice(
+                self.labels, size=(1),  p=out[0, 0])
+            # print(type(sample_label))
+            # print(u'sample_label: {}'.format(sample_label))
         output_sample = prime_string
         print('start sampling')
         # Sample for sample_length steps
         for _ in range(sample_length):
             sample_label = np.random.choice(
-                self.labels, size=(1),  p=out[0, 0])
+                self.labels, size=(1),  p=out[0, 0])[0]
             # print('out: ', out[0,0], 'sample_label: ', sample_label)
-            # print('sample_label: ', sample_label)
+            # print(type(sample_label))
+            # print(u'sample_label: {}'.format(sample_label))
             output_sample += sample_label
+            sample_idx = self.label_map[sample_label]
             out = session.run(
                 self.probabilities,
-                feed_dict={self.inputs: np.asarray([sample_label])})
+                feed_dict={self.inputs: np.asarray([[sample_idx]])})
             # print('s: ', s)
             # print('emb: ', emb)
         return output_sample
@@ -218,57 +229,23 @@ def train_and_sample(minibatch_iterations, restore):
         print('\nSample 2:')
         sample = model.sample(
             sess, prime_string=u'She was born in the year ', sample_length=500)
-        pprint('sample: \n{}'.format(sample))
+        print('sample: \n{}'.format(sample))
         print('\nSample 3:')
         sample = model.sample(
             sess, prime_string=u'The meaning of this all is ',
             sample_length=500)
-        pprint('sample: \n{}'.format(sample))
+        print('sample: \n{}'.format(sample))
 
 
 def main():
-    # minibatch_iterations = 10000
-    # print('\n\n\nTrain for {} steps (1)'.format(minibatch_iterations))
-    # train_and_sample(minibatch_iterations, restore=False)
-    # for i in range(2, 52):
-    #     print('\n\n\nTrain for {} steps ({})'.format(
-    #         minibatch_iterations * i, i))
-    #     train_and_sample(minibatch_iterations, restore=True)
+    minibatch_iterations = 5000
+    print('\n\n\nTrain for {} steps (1)'.format(minibatch_iterations))
+    train_and_sample(minibatch_iterations, restore=False)
+    for i in range(2, 102):
+        print('\n\n\nTrain for {} steps ({})'.format(
+            minibatch_iterations * i, i))
+        train_and_sample(minibatch_iterations, restore=True)
 
-    batch_size = 64
-    lstm_sizes = [512, 512]
-    batch_len = 100
-    learning_rate = 2e-3
-
-    filepath = './wap.txt'
-
-    data_feed = data_reader.DataReader(
-         filepath, batch_len, batch_size)
-    labels = data_feed.char_list
-    print('labels: ', labels)
-
-    save_path = './model.tf'
-    tf.reset_default_graph()
-    model = Model(
-        1, None, lstm_sizes, 1.0, labels, save_path)
-    model.init_graph()
-    init_op = tf.initialize_all_variables()
-    with tf.Session() as sess:
-        sess.run(init_op)
-        model.restore(sess)
-        print('\nSample 1:')
-        sample = model.sample(
-            sess, prime_string=u'\n\nThis feeling was ', sample_length=500)
-        print('sample: \n{}'.format(sample))
-        print('\nSample 2:')
-        sample = model.sample(
-            sess, prime_string=u'She was born in the year ', sample_length=500)
-        pprint('sample: \n{}'.format(sample))
-        print('\nSample 3:')
-        sample = model.sample(
-            sess, prime_string=u'The meaning of this all is ',
-            sample_length=500)
-        pprint('sample: \n{}'.format(sample))
 
 if __name__ == "__main__":
     main()
