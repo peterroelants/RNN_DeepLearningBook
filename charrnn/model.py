@@ -247,6 +247,7 @@ def main():
     labels = data_feed.char_list
     print('labels: ', labels)
 
+    save_path = './model.tf'
     tf.reset_default_graph()
     model = Model(
         1, None, lstm_sizes, 1.0, labels, save_path)
