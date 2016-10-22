@@ -3,3 +3,4 @@
 checkpoint
 *.tf
 *.tf.meta
+*.DS_Store

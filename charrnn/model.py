@@ -8,9 +8,10 @@ import data_reader
 
 
 class Model(object):
-    def __init__(self, batch_size, lstm_sizes, dropout,
+    def __init__(self, batch_size, sequence_length, lstm_sizes, dropout,
                  labels, save_path):
         self.batch_size = batch_size
+        self.sequence_length = sequence_length
         self.lstm_sizes = lstm_sizes
         self.labels = labels
         self.label_map = {val: idx for idx, val in enumerate(labels)}
@@ -20,8 +21,8 @@ class Model(object):
 
     def init_graph(self):
         # Variable sequence length
-        self.inputs = tf.placeholder(tf.int32, [self.batch_size, None])
-        self.targets = tf.placeholder(tf.int32, [self.batch_size, None])
+        self.inputs = tf.placeholder(tf.int32, [self.batch_size, self.sequence_length])
+        self.targets = tf.placeholder(tf.int32, [self.batch_size, self.sequence_length])
         self.sample_temperature = tf.placeholder_with_default(1.0, [])
         self.init_architecture()
         self.saver = tf.train.Saver(tf.trainable_variables())
@@ -89,6 +90,7 @@ class Model(object):
         # return self.probabilities
 
     def init_train_op(self, optimizer):
+        # Flatten the targets to be compatible with the flattened logits
         targets_flat = tf.reshape(self.targets, (-1, ))
         # Get the loss over all outputs
         loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
@@ -96,38 +98,40 @@ class Model(object):
         print('loss: ', loss.get_shape())
         self.loss = tf.reduce_mean(loss)
         print('loss: ', loss.get_shape())
-        tvars = tf.trainable_variables()
-        for var in tvars:
+        trainable_variables = tf.trainable_variables()
+        for var in trainable_variables:
             print('var: ', var.name)
-        grads, _ = tf.clip_by_global_norm(tf.gradients(loss, tvars), 5)
-        self.train_op = optimizer.apply_gradients(zip(grads, tvars))
+        gradients = tf.gradients(loss, trainable_variables)
+        gradients, _ = tf.clip_by_global_norm(
+            gradients, 5)
+        self.train_op = optimizer.apply_gradients(
+            zip(gradients, trainable_variables))
 
         # self.train_op = optimizer.minimize(self.loss)
 
-    def sample(self, session, prime, sample_length, temperature=1.0):
+    def sample(self, session, prime_string, sample_length, temperature=1.0):
         self.reset_state(session)
-        label_idx_list = range(self.number_of_characters)
         # Prime state
-        print('prime: ', prime)
-        for char in prime:
-            char_idx = self.label_map[char]
+        print('prime_string: ', prime_string)
+        for character in prime_string:
+            character_idx = self.label_map[character]
             out = session.run(
                 self.probabilities,
-                feed_dict={self.inputs: np.asarray([[char_idx]]),
+                feed_dict={self.inputs: np.asarray([[character_idx]]),
                            self.sample_temperature: temperature})
             # print('out: ', out, 'out[0,0]: ', out[0,0])
-            sample_label = np.random.choice(
-                label_idx_list, size=(1),  p=out[0, 0])
+            # sample_label = np.random.choice(
+            #     self.labels, size=(1),  p=out[0, 0])
             # print('out: ', out, 'sample_label: ', sample_label)
-        output_sample = prime
+        output_sample = prime_string
         print('start sampling')
         # Sample for sample_length steps
         for _ in range(sample_length):
             sample_label = np.random.choice(
-                label_idx_list, size=(1),  p=out[0, 0])
+                self.labels, size=(1),  p=out[0, 0])
             # print('out: ', out[0,0], 'sample_label: ', sample_label)
             # print('sample_label: ', sample_label)
-            output_sample += self.labels[sample_label[0]]
+            output_sample += sample_label
             out = session.run(
                 self.probabilities,
                 feed_dict={self.inputs: np.asarray([sample_label]),
@@ -136,9 +140,9 @@ class Model(object):
             # print('emb: ', emb)
         return output_sample
 
-    def reset_state(self, sess):
-        for s in tf.python.util.nest.flatten(self.state_variables):
-            sess.run(s.initializer)
+    def reset_state(self, session):
+        for state in tf.python.util.nest.flatten(self.state_variables):
+            session.run(state.initializer)
 
     def save(self, sess):
         self.saver.save(sess, self.save_path)
@@ -162,7 +166,7 @@ def main():
 
     save_path = './model.tf'
     model = Model(
-        batch_size, lstm_sizes, 0.8, labels,
+        batch_size, batch_len, lstm_sizes, 0.8, labels,
         save_path)
     model.init_graph()
     # optimizer = tf.train.MomentumOptimizer(
@@ -207,7 +211,7 @@ def main():
 
     tf.reset_default_graph()
     model = Model(
-        1, lstm_sizes, 1.0, labels, save_path)
+        1, None, lstm_sizes, 1.0, labels, save_path)
     model.init_graph()
     init_op = tf.initialize_all_variables()
     with tf.Session() as sess:
