@@ -178,7 +178,7 @@ def main():
     init_op = tf.initialize_all_variables()
     with tf.Session() as sess:
         sess.run(init_op)
-        # model.restore(sess)
+        model.restore(sess)
         model.reset_state(sess)
         # input_batch, target_batch = next(batch_generator)
         # print('input_batch: ', input_batch.shape, input_batch)
