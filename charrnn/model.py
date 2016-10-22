@@ -164,6 +164,7 @@ class Model(object):
 
 
 def train_and_sample(minibatch_iterations, restore):
+    tf.reset_default_graph()
     batch_size = 64
     lstm_sizes = [512, 512]
     batch_len = 100
