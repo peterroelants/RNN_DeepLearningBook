@@ -21,9 +21,11 @@ class Model(object):
 
     def init_graph(self):
         # Variable sequence length
-        self.inputs = tf.placeholder(tf.int32, [self.batch_size, self.sequence_length])
-        self.targets = tf.placeholder(tf.int32, [self.batch_size, self.sequence_length])
-        self.sample_temperature = tf.placeholder_with_default(1.0, [])
+        self.inputs = tf.placeholder(
+            tf.int32, [self.batch_size, self.sequence_length])
+        self.targets = tf.placeholder(
+            tf.int32, [self.batch_size, self.sequence_length])
+        # self.sample_temperature = tf.placeholder_with_default(1.0, [])
         self.init_architecture()
         self.saver = tf.train.Saver(tf.trainable_variables())
 
@@ -80,10 +82,10 @@ class Model(object):
         # Apply last layer transformation
         self.logits_flat = tf.matmul(
             output_flat, self.logit_weights) + self.logit_bias
-        logits_temp = self.logits_flat / self.sample_temperature
-        probabilities_flat = tf.exp(logits_temp) / tf.reduce_sum(
-            tf.exp(logits_temp))
-        # probabilities_flat = tf.nn.softmax(self.logits_flat)
+        # logits_temp = self.logits_flat / self.sample_temperature
+        # probabilities_flat = tf.exp(logits_temp) / tf.reduce_sum(
+        #     tf.exp(logits_temp))
+        probabilities_flat = tf.nn.softmax(self.logits_flat)
         self.probabilities = tf.reshape(
             probabilities_flat,
             (self.batch_size, -1, self.number_of_characters))
@@ -109,7 +111,7 @@ class Model(object):
 
         # self.train_op = optimizer.minimize(self.loss)
 
-    def sample(self, session, prime_string, sample_length, temperature=1.0):
+    def sample(self, session, prime_string, sample_length):
         self.reset_state(session)
         # Prime state
         print('prime_string: ', prime_string)
@@ -117,8 +119,7 @@ class Model(object):
             character_idx = self.label_map[character]
             out = session.run(
                 self.probabilities,
-                feed_dict={self.inputs: np.asarray([[character_idx]]),
-                           self.sample_temperature: temperature})
+                feed_dict={self.inputs: np.asarray([[character_idx]])})
             # print('out: ', out, 'out[0,0]: ', out[0,0])
             # sample_label = np.random.choice(
             #     self.labels, size=(1),  p=out[0, 0])
@@ -134,8 +135,7 @@ class Model(object):
             output_sample += sample_label
             out = session.run(
                 self.probabilities,
-                feed_dict={self.inputs: np.asarray([sample_label]),
-                           self.sample_temperature: temperature})
+                feed_dict={self.inputs: np.asarray([sample_label])})
             # print('s: ', s)
             # print('emb: ', emb)
         return output_sample
@@ -151,7 +151,7 @@ class Model(object):
         self.saver.restore(sess, self.save_path)
 
 
-def main():
+def train_and_sample(minibatch_iterations, restore):
     batch_size = 64
     lstm_sizes = [512, 512]
     batch_len = 100
@@ -169,26 +169,19 @@ def main():
         batch_size, batch_len, lstm_sizes, 0.8, labels,
         save_path)
     model.init_graph()
-    # optimizer = tf.train.MomentumOptimizer(
-    #     learning_rate=learning_rate, momentum=0.9, use_locking=False,
-    #     name='Momentum', use_nesterov=True)
     optimizer = tf.train.AdamOptimizer(learning_rate)
     model.init_train_op(optimizer)
 
     init_op = tf.initialize_all_variables()
     with tf.Session() as sess:
         sess.run(init_op)
-        model.restore(sess)
+        if restore:
+            print('Restoring model')
+            model.restore(sess)
         model.reset_state(sess)
-        # input_batch, target_batch = next(batch_generator)
-        # print('input_batch: ', input_batch.shape, input_batch)
-        # print('target_batch: ', target_batch.shape, target_batch)
         start_time = time.time()
-        for i in range(500000):
-            # model.reset_state(sess)
+        for i in range(minibatch_iterations):
             input_batch, target_batch = next(iter(data_feed))
-            # print('input_batch: ', input_batch.shape, input_batch)
-            # print('target_batch: ', target_batch.shape, target_batch)
             loss, _ = sess.run(
                 [model.loss, model.train_op],
                 feed_dict={
@@ -199,7 +192,6 @@ def main():
                 print('loss: {} ({} sec.)'.format(loss, duration))
                 start_time = time.time()
             if i % 1000 == 0 and i != 0:
-                print('Saving')
                 model.save(sess)
             if i % 100 == 0 and i != 0:
                 print('Reset initial state')
@@ -209,6 +201,7 @@ def main():
                 data_feed.reset_indices()
         model.save(sess)
 
+    print('\n sampling after {} iterations'.format(minibatch_iterations))
     tf.reset_default_graph()
     model = Model(
         1, None, lstm_sizes, 1.0, labels, save_path)
@@ -217,10 +210,28 @@ def main():
     with tf.Session() as sess:
         sess.run(init_op)
         model.restore(sess)
+        print('\nSample 1:')
         sample = model.sample(
-            sess, prime='\n\nThis feeling was ', sample_length=500,
-            temperature=1.0)
-        print('sample: ', sample)
+            sess, prime='\n\nThis feeling was ', sample_length=500)
+        print('sample: \n{}'.format(sample))
+        print('\nSample 2:')
+        sample = model.sample(
+            sess, prime='She was born in the year ', sample_length=500)
+        pprint('sample: \n{}'.format(sample))
+        print('\nSample 3:')
+        sample = model.sample(
+            sess, prime='The meaning of this all is ', sample_length=500)
+        pprint('sample: \n{}'.format(sample))
+
+
+def main():
+    minibatch_iterations = 10000
+    print('\n\n\nTrain for {} steps (1)'.format(minibatch_iterations))
+    train_and_sample(minibatch_iterations, restore=False)
+    for i in range(2, 52):
+        print('\n\n\nTrain for {} steps ({})'.format(
+            minibatch_iterations * i, i))
+        train_and_sample(minibatch_iterations, restore=True)
 
 if __name__ == "__main__":
     main()
