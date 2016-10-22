@@ -1,3 +1,4 @@
+# stdbuf -oL python model.py | tee train.log
 from __future__ import print_function
 from __future__ import division
 
@@ -212,15 +213,15 @@ def train_and_sample(minibatch_iterations, restore):
         model.restore(sess)
         print('\nSample 1:')
         sample = model.sample(
-            sess, prime='\n\nThis feeling was ', sample_length=500)
+            sess, prime_string='\n\nThis feeling was ', sample_length=500)
         print('sample: \n{}'.format(sample))
         print('\nSample 2:')
         sample = model.sample(
-            sess, prime='She was born in the year ', sample_length=500)
+            sess, prime_string='She was born in the year ', sample_length=500)
         pprint('sample: \n{}'.format(sample))
         print('\nSample 3:')
         sample = model.sample(
-            sess, prime='The meaning of this all is ', sample_length=500)
+            sess, prime_string='The meaning of this all is ', sample_length=500)
         pprint('sample: \n{}'.format(sample))
 
 
