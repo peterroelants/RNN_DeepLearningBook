@@ -240,6 +240,13 @@ def main():
     batch_len = 100
     learning_rate = 2e-3
 
+    filepath = './wap.txt'
+
+    data_feed = data_reader.DataReader(
+         filepath, batch_len, batch_size)
+    labels = data_feed.char_list
+    print('labels: ', labels)
+
     tf.reset_default_graph()
     model = Model(
         1, None, lstm_sizes, 1.0, labels, save_path)
