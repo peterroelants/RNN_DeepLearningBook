@@ -225,16 +225,16 @@ def train_and_sample(minibatch_iterations, restore):
         print('\nSample 1:')
         sample = model.sample(
             sess, prime_string=u'\n\nThis feeling was ', sample_length=500)
-        print('sample: \n{}'.format(sample))
+        print(u'sample: \n{}'.format(sample))
         print('\nSample 2:')
         sample = model.sample(
             sess, prime_string=u'She was born in the year ', sample_length=500)
-        print('sample: \n{}'.format(sample))
+        print(u'sample: \n{}'.format(sample))
         print('\nSample 3:')
         sample = model.sample(
             sess, prime_string=u'The meaning of this all is ',
             sample_length=500)
-        print('sample: \n{}'.format(sample))
+        print(u'sample: \n{}'.format(sample))
 
 
 def main():
