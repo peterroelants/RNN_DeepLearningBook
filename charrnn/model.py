@@ -235,6 +235,11 @@ def main():
     #         minibatch_iterations * i, i))
     #     train_and_sample(minibatch_iterations, restore=True)
 
+    batch_size = 64
+    lstm_sizes = [512, 512]
+    batch_len = 100
+    learning_rate = 2e-3
+
     tf.reset_default_graph()
     model = Model(
         1, None, lstm_sizes, 1.0, labels, save_path)
