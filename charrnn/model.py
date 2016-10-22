@@ -213,26 +213,49 @@ def train_and_sample(minibatch_iterations, restore):
         model.restore(sess)
         print('\nSample 1:')
         sample = model.sample(
-            sess, prime_string='\n\nThis feeling was ', sample_length=500)
+            sess, prime_string=u'\n\nThis feeling was ', sample_length=500)
         print('sample: \n{}'.format(sample))
         print('\nSample 2:')
         sample = model.sample(
-            sess, prime_string='She was born in the year ', sample_length=500)
+            sess, prime_string=u'She was born in the year ', sample_length=500)
         pprint('sample: \n{}'.format(sample))
         print('\nSample 3:')
         sample = model.sample(
-            sess, prime_string='The meaning of this all is ', sample_length=500)
+            sess, prime_string=u'The meaning of this all is ',
+            sample_length=500)
         pprint('sample: \n{}'.format(sample))
 
 
 def main():
-    minibatch_iterations = 10000
-    print('\n\n\nTrain for {} steps (1)'.format(minibatch_iterations))
-    train_and_sample(minibatch_iterations, restore=False)
-    for i in range(2, 52):
-        print('\n\n\nTrain for {} steps ({})'.format(
-            minibatch_iterations * i, i))
-        train_and_sample(minibatch_iterations, restore=True)
+    # minibatch_iterations = 10000
+    # print('\n\n\nTrain for {} steps (1)'.format(minibatch_iterations))
+    # train_and_sample(minibatch_iterations, restore=False)
+    # for i in range(2, 52):
+    #     print('\n\n\nTrain for {} steps ({})'.format(
+    #         minibatch_iterations * i, i))
+    #     train_and_sample(minibatch_iterations, restore=True)
+
+    tf.reset_default_graph()
+    model = Model(
+        1, None, lstm_sizes, 1.0, labels, save_path)
+    model.init_graph()
+    init_op = tf.initialize_all_variables()
+    with tf.Session() as sess:
+        sess.run(init_op)
+        model.restore(sess)
+        print('\nSample 1:')
+        sample = model.sample(
+            sess, prime_string=u'\n\nThis feeling was ', sample_length=500)
+        print('sample: \n{}'.format(sample))
+        print('\nSample 2:')
+        sample = model.sample(
+            sess, prime_string=u'She was born in the year ', sample_length=500)
+        pprint('sample: \n{}'.format(sample))
+        print('\nSample 3:')
+        sample = model.sample(
+            sess, prime_string=u'The meaning of this all is ',
+            sample_length=500)
+        pprint('sample: \n{}'.format(sample))
 
 if __name__ == "__main__":
     main()
