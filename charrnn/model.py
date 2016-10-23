@@ -255,10 +255,14 @@ def train_and_sample(minibatch_iterations, restore):
 
 
 def main():
-    print('\n\n\nTrain for {}'.format(1000))
-    train_and_sample(1000, restore=False)
-    for i in [2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000]:
+    total_iterations = 500
+    print('\n\n\nTrain for {}'.format(500))
+    print('Total iters: {}'.format(total_iterations))
+    train_and_sample(500, restore=False)
+    for i in [500, 1000, 3000, 5000, 10000, 30000, 50000, 100000, 300000]:
+        total_iterations += i
         print('\n\n\nTrain for {}'.format(i))
+        print('Total iters: {}'.format(total_iterations))
         train_and_sample(i, restore=True)
 
 
