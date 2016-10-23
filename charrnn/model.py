@@ -255,13 +255,11 @@ def train_and_sample(minibatch_iterations, restore):
 
 
 def main():
-    minibatch_iterations = 5000
-    print('\n\n\nTrain for {} steps (1)'.format(minibatch_iterations))
-    train_and_sample(minibatch_iterations, restore=False)
-    for i in [1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000]:
-        print('\n\n\nTrain for {} steps ({})'.format(
-            minibatch_iterations * i, i))
-        train_and_sample(minibatch_iterations, restore=True)
+    print('\n\n\nTrain for {}'.format(1000))
+    train_and_sample(1000, restore=False)
+    for i in [2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000]:
+        print('\n\n\nTrain for {}'.format(i))
+        train_and_sample(i, restore=True)
 
 
 if __name__ == "__main__":
