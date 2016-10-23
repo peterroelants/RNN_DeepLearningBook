@@ -239,7 +239,7 @@ def train_and_sample(minibatch_iterations, restore):
         print('\nSample 4:')
         sample = model.sample(
             sess,
-            prime_string=u'In the midst of a conversation on political matters Anna Pávlovna burst out:,'
+            prime_string=u'In the midst of a conversation on political matters Anna Pávlovna burst out:,',
             sample_length=500)
         print(u'sample: \n{}'.format(sample))
         print('\nSample 5:')
