@@ -236,13 +236,29 @@ def train_and_sample(minibatch_iterations, restore):
             sess, prime_string=u'The meaning of this all is ',
             sample_length=500)
         print(u'sample: \n{}'.format(sample))
+        print('\nSample 4:')
+        sample = model.sample(
+            sess,
+            prime_string=u'In the midst of a conversation on political matters Anna Pávlovna burst out:,'
+            sample_length=500)
+        print(u'sample: \n{}'.format(sample))
+        print('\nSample 5:')
+        sample = model.sample(
+            sess, prime_string=u'\n\nCHAPTER X\n\n'
+            sample_length=500)
+        print(u'sample: \n{}'.format(sample))
+        print('\nSample 5:')
+        sample = model.sample(
+            sess, prime_string=u'"If only you knew,"'
+            sample_length=500)
+        print(u'sample: \n{}'.format(sample))
 
 
 def main():
     minibatch_iterations = 5000
     print('\n\n\nTrain for {} steps (1)'.format(minibatch_iterations))
     train_and_sample(minibatch_iterations, restore=False)
-    for i in range(2, 102):
+    for i in [1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000]:
         print('\n\n\nTrain for {} steps ({})'.format(
             minibatch_iterations * i, i))
         train_and_sample(minibatch_iterations, restore=True)
